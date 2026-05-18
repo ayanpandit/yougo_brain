@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: yougo-brain-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: yougo_brain
+    ports:
+      - "5435:5432" # Expose to host to avoid port conflict if standard 5432 is in use
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - yougo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d yougo_brain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: yougo-brain-redis
+    restart: always
+    ports:
+      - "6380:6379" # Expose to host to avoid port conflict if standard 6379 is in use
+    volumes:
+      - redisdata:/data
+    networks:
+      - yougo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yougo-brain-api
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - NODE_ENV=production
+      - PORT=8001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/yougo_brain?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - OBSERVABILITY_ENABLED=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - yougo-network
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  yougo-network:
+    driver: bridge

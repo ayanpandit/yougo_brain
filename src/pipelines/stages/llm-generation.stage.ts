@@ -1,0 +1,43 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { BaseLlmProvider, LlmResponse } from '../../providers/base/llm.provider';
+import { GeminiProvider } from '../../providers/llm/gemini.provider';
+
+@Injectable()
+export class LlmGenerationStage {
+  private readonly logger = new Logger(LlmGenerationStage.name);
+
+  constructor(
+    private readonly primaryLlmProvider: BaseLlmProvider,
+    private readonly geminiProvider: GeminiProvider, // Injected for failover model switching
+  ) {}
+
+  async execute(compiledPrompt: string, useJson = true): Promise<LlmResponse> {
+    this.logger.log(`Executing LLM Generation Stage using primary provider: ${this.primaryLlmProvider.getName()}`);
+
+    try {
+      return await this.primaryLlmProvider.generate({
+        systemPrompt: 'You are an accurate, highly specialized travel AI orchestration assistant.',
+        userPrompt: compiledPrompt,
+        temperature: 0.5,
+        responseFormat: useJson ? 'json' : 'text',
+      });
+    } catch (primaryError: any) {
+      this.logger.warn(`Primary LLM provider (${this.primaryLlmProvider.getName()}) failed: ${primaryError.message}. Routing failover to Gemini...`);
+      
+      try {
+        const fallbackResponse = await this.geminiProvider.generate({
+          systemPrompt: 'You are an accurate, highly specialized travel AI orchestration assistant.',
+          userPrompt: compiledPrompt,
+          temperature: 0.5,
+          responseFormat: useJson ? 'json' : 'text',
+        });
+        
+        this.logger.log('Gemini failover completed successfully!');
+        return fallbackResponse;
+      } catch (fallbackError: any) {
+        this.logger.error('All LLM providers failed to execute generation!');
+        throw new Error(`Orchestration LLM Crash: ${fallbackError.message}`);
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Generation {
+  id           String             @id @default(uuid())
+  status       GenerationStatus   @default(PENDING)
+  promptParams Json               // Input prompts, locations, dates, preferences
+  metadata     Json?              // Additional telemetry / provider data / cost
+  error        String?            // Final error message if failed
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  outputs      GenerationOutput[]
+
+  @@map("generations")
+}
+
+model GenerationOutput {
+  id               String      @id @default(uuid())
+  generationId     String
+  stepName         String      // e.g. "enrichment", "llm-generation", "validation"
+  payload          Json        // JSONB field for dynamic structured AI data
+  validationPassed Boolean     @default(true)
+  error            String?     // Validation or process error if occurred
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  generation       Generation  @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  @@index([generationId])
+  @@map("generation_outputs")
+}
