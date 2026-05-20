@@ -16,7 +16,9 @@ export class PersistenceStage {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(input: PersistenceInput) {
-    this.logger.log(`Executing Persistence Stage: saving step "${input.stepName}" for Generation ${input.generationId}...`);
+    this.logger.log(
+      `Executing Persistence Stage: saving step "${input.stepName}" for Generation ${input.generationId}...`,
+    );
 
     try {
       const output = await this.prisma.generationOutput.create({
@@ -29,10 +31,15 @@ export class PersistenceStage {
         },
       });
 
-      this.logger.log(`Step "${input.stepName}" successfully persisted in DB! ID: ${output.id}`);
+      this.logger.log(
+        `Step "${input.stepName}" successfully persisted in DB! ID: ${output.id}`,
+      );
       return output;
     } catch (err: any) {
-      this.logger.error(`Failed to write persistence for step "${input.stepName}":`, err.message);
+      this.logger.error(
+        `Failed to write persistence for step "${input.stepName}":`,
+        err.message,
+      );
       throw err;
     }
   }

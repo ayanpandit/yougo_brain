@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
@@ -22,7 +27,9 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
     const host = this.configService.get<string>('app.redis.host', 'localhost');
     const port = this.configService.get<number>('app.redis.port', 6379);
 
-    this.logger.log(`Spinning up GenerationWorker subscribing to Redis at ${host}:${port}...`);
+    this.logger.log(
+      `Spinning up GenerationWorker subscribing to Redis at ${host}:${port}...`,
+    );
     this.redisConnection = new Redis({
       host,
       port,
@@ -51,7 +58,9 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
 
   private async processJob(job: Job) {
     const { generationId, payload } = job.data;
-    this.logger.log(`[Worker] Started processing job ${job.id} for Generation ${generationId}`);
+    this.logger.log(
+      `[Worker] Started processing job ${job.id} for Generation ${generationId}`,
+    );
 
     // Update state to PROCESSING
     await this.prisma.generation.update({
@@ -61,30 +70,37 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
 
     try {
       // Execute the orchestration flow
-      const result = await this.orchestrationService.orchestrate(generationId, payload);
+      const result = await this.orchestrationService.orchestrate(
+        generationId,
+        payload,
+      );
 
       // Update state to COMPLETED
       await this.prisma.generation.update({
         where: { id: generationId },
-        data: { 
+        data: {
           status: GenerationStatus.COMPLETED,
           metadata: {
             durationMs: Date.now() - job.timestamp,
             attempts: job.attemptsMade,
-          }
+          },
         },
       });
 
-      this.logger.log(`[Worker] Generation ${generationId} processed successfully!`);
+      this.logger.log(
+        `[Worker] Generation ${generationId} processed successfully!`,
+      );
       return result;
-
     } catch (error: any) {
-      this.logger.error(`[Worker] Error processing Generation ${generationId}:`, error);
+      this.logger.error(
+        `[Worker] Error processing Generation ${generationId}:`,
+        error,
+      );
 
       // Update state to FAILED
       await this.prisma.generation.update({
         where: { id: generationId },
-        data: { 
+        data: {
           status: GenerationStatus.FAILED,
           error: error.message || 'Unknown generation error',
         },

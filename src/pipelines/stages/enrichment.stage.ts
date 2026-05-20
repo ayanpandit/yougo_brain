@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BaseMapsProvider, LocationDetails } from '../../providers/base/maps.provider';
-import { BaseWeatherProvider, WeatherDetails } from '../../providers/base/weather.provider';
+import {
+  BaseMapsProvider,
+  LocationDetails,
+} from '../../providers/base/maps.provider';
+import {
+  BaseWeatherProvider,
+  WeatherDetails,
+} from '../../providers/base/weather.provider';
 
 export interface EnrichmentOutput {
   location: LocationDetails;
@@ -23,10 +29,15 @@ export class EnrichmentStage {
     const location = await this.mapsProvider.searchLocation(destination);
 
     // 2. Fetch meteorological weather metrics using coordinates
-    const weather = await this.weatherProvider.getWeather(location.latitude, location.longitude);
+    const weather = await this.weatherProvider.getWeather(
+      location.latitude,
+      location.longitude,
+    );
 
-    this.logger.log(`Enrichment complete! Coordinates: (${location.latitude}, ${location.longitude}), Weather: ${weather.temperatureC}°C, ${weather.condition}`);
-    
+    this.logger.log(
+      `Enrichment complete! Coordinates: (${location.latitude}, ${location.longitude}), Weather: ${weather.temperatureC}°C, ${weather.condition}`,
+    );
+
     return {
       location,
       weather,

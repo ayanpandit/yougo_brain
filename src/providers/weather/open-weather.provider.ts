@@ -6,8 +6,13 @@ import axios from 'axios';
 export class OpenWeatherProvider extends BaseWeatherProvider {
   private readonly logger = new Logger(OpenWeatherProvider.name);
 
-  async getWeather(latitude: number, longitude: number): Promise<WeatherDetails> {
-    this.logger.log(`Fetching meteorology coordinates forecast for lat: ${latitude}, lng: ${longitude}`);
+  async getWeather(
+    latitude: number,
+    longitude: number,
+  ): Promise<WeatherDetails> {
+    this.logger.log(
+      `Fetching meteorology coordinates forecast for lat: ${latitude}, lng: ${longitude}`,
+    );
 
     try {
       // Fetching from open-meteo, which requires no API key and provides excellent accuracy
@@ -24,9 +29,11 @@ export class OpenWeatherProvider extends BaseWeatherProvider {
       );
 
       const current = response.data.current_weather;
-      
+
       if (!current) {
-        throw new Error('No weather forecast payload returned from meteorological service');
+        throw new Error(
+          'No weather forecast payload returned from meteorological service',
+        );
       }
 
       return {
@@ -36,7 +43,10 @@ export class OpenWeatherProvider extends BaseWeatherProvider {
         windSpeedKph: current.windspeed,
       };
     } catch (error: any) {
-      this.logger.error(`Meteorology forecast fetch failure for coordinates ${latitude}, ${longitude}:`, error.message);
+      this.logger.error(
+        `Meteorology forecast fetch failure for coordinates ${latitude}, ${longitude}:`,
+        error.message,
+      );
       // Failover safely to standard pleasant default weather instead of breaking the entire orchestration flow
       return {
         temperatureC: 22,

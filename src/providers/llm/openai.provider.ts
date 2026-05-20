@@ -22,7 +22,9 @@ export class OpenAiProvider extends BaseLlmProvider {
     this.logger.log(`Executing LLM generation via OpenAI model: ${model}`);
 
     if (!this.apiKey) {
-      this.logger.warn('OPENAI_API_KEY is not defined! Falling back to simulated Travel AI response...');
+      this.logger.warn(
+        'OPENAI_API_KEY is not defined! Falling back to simulated Travel AI response...',
+      );
       return this.generateMockResponse(request);
     }
 
@@ -40,7 +42,10 @@ export class OpenAiProvider extends BaseLlmProvider {
           messages,
           temperature: request.temperature ?? 0.7,
           max_tokens: request.maxTokens ?? 2000,
-          response_format: request.responseFormat === 'json' ? { type: 'json_object' } : undefined,
+          response_format:
+            request.responseFormat === 'json'
+              ? { type: 'json_object' }
+              : undefined,
         },
         {
           headers: {
@@ -66,7 +71,10 @@ export class OpenAiProvider extends BaseLlmProvider {
           : undefined,
       };
     } catch (error: any) {
-      this.logger.error('OpenAI generation failure:', error.response?.data || error.message);
+      this.logger.error(
+        'OpenAI generation failure:',
+        error.response?.data || error.message,
+      );
       throw new Error(`OpenAI Provider Error: ${error.message}`);
     }
   }
@@ -82,33 +90,73 @@ export class OpenAiProvider extends BaseLlmProvider {
               day: 1,
               title: 'Modern Marvels & City Lights',
               activities: [
-                { time: '09:00 AM', name: 'Explore Shibuya Crossing', cost: 'Free', notes: 'Walk the worlds busiest crossing' },
-                { time: '01:00 PM', name: 'Lunch at Harajuku Takeshita St', cost: '$15', notes: 'Try famous sweet crepes' },
-                { time: '06:00 PM', name: 'Observation deck at Tokyo Metropolitan Gov Bldg', cost: 'Free', notes: 'Stunning panoramic views' }
-              ]
+                {
+                  time: '09:00 AM',
+                  name: 'Explore Shibuya Crossing',
+                  cost: 'Free',
+                  notes: 'Walk the worlds busiest crossing',
+                },
+                {
+                  time: '01:00 PM',
+                  name: 'Lunch at Harajuku Takeshita St',
+                  cost: '$15',
+                  notes: 'Try famous sweet crepes',
+                },
+                {
+                  time: '06:00 PM',
+                  name: 'Observation deck at Tokyo Metropolitan Gov Bldg',
+                  cost: 'Free',
+                  notes: 'Stunning panoramic views',
+                },
+              ],
             },
             {
               day: 2,
               title: 'Historic Shrines & Gardens',
               activities: [
-                { time: '08:00 AM', name: 'Meiji Jingu Shrine tour', cost: 'Free', notes: 'Serene forest walk' },
-                { time: '02:00 PM', name: 'Walk Shinjuku Gyoen National Garden', cost: '$5', notes: 'Beautiful traditional landscape' }
-              ]
+                {
+                  time: '08:00 AM',
+                  name: 'Meiji Jingu Shrine tour',
+                  cost: 'Free',
+                  notes: 'Serene forest walk',
+                },
+                {
+                  time: '02:00 PM',
+                  name: 'Walk Shinjuku Gyoen National Garden',
+                  cost: '$5',
+                  notes: 'Beautiful traditional landscape',
+                },
+              ],
             },
             {
               day: 3,
               title: 'Tech & Anime Pilgrimage',
               activities: [
-                { time: '10:00 AM', name: 'Shopping in Akihabara Electric Town', cost: 'Varies', notes: 'Ultimate hub for gaming & anime' },
-                { time: '07:00 PM', name: 'Sushi Dinner in Ginza district', cost: '$60', notes: 'Premium chef selected dining' }
-              ]
-            }
+                {
+                  time: '10:00 AM',
+                  name: 'Shopping in Akihabara Electric Town',
+                  cost: 'Varies',
+                  notes: 'Ultimate hub for gaming & anime',
+                },
+                {
+                  time: '07:00 PM',
+                  name: 'Sushi Dinner in Ginza district',
+                  cost: '$60',
+                  notes: 'Premium chef selected dining',
+                },
+              ],
+            },
           ],
           enrichedData: {
             localWeatherForecast: '18°C, Partially Cloudy',
-            suggestedPackingList: ['Comfortable walking shoes', 'Plug adapter type A', 'Suica cash card'],
-            travelWarning: 'High crowd volumes around Shibuya stations between 5pm-7pm'
-          }
+            suggestedPackingList: [
+              'Comfortable walking shoes',
+              'Plug adapter type A',
+              'Suica cash card',
+            ],
+            travelWarning:
+              'High crowd volumes around Shibuya stations between 5pm-7pm',
+          },
         };
 
         resolve({

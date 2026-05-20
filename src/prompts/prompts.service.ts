@@ -9,12 +9,18 @@ export class PromptsService implements OnModuleInit {
   private promptCache: Map<string, string> = new Map();
 
   async onModuleInit() {
-    this.logger.log(`Scanning filesystem prompt templates directory: ${this.promptsDir}...`);
+    this.logger.log(
+      `Scanning filesystem prompt templates directory: ${this.promptsDir}...`,
+    );
     try {
       await fs.mkdir(this.promptsDir, { recursive: true });
       await fs.mkdir(path.join(this.promptsDir, 'system'), { recursive: true });
-      await fs.mkdir(path.join(this.promptsDir, 'planners'), { recursive: true });
-      await fs.mkdir(path.join(this.promptsDir, 'modifiers'), { recursive: true });
+      await fs.mkdir(path.join(this.promptsDir, 'planners'), {
+        recursive: true,
+      });
+      await fs.mkdir(path.join(this.promptsDir, 'modifiers'), {
+        recursive: true,
+      });
       this.logger.log('Prompt directories ready!');
     } catch (err) {
       this.logger.error('Failed to initialize prompt directories:', err);
@@ -33,18 +39,26 @@ export class PromptsService implements OnModuleInit {
       this.promptCache.set(relativeFilePath, content);
       return content;
     } catch (err: any) {
-      this.logger.warn(`Could not read prompt ${relativeFilePath} from disk: ${err.message}. Using safe fallback.`);
+      this.logger.warn(
+        `Could not read prompt ${relativeFilePath} from disk: ${err.message}. Using safe fallback.`,
+      );
       return this.getFallbackTemplate(relativeFilePath);
     }
   }
 
-  async compilePrompt(relativeFilePath: string, variables: Record<string, any>): Promise<string> {
+  async compilePrompt(
+    relativeFilePath: string,
+    variables: Record<string, any>,
+  ): Promise<string> {
     const template = await this.loadPrompt(relativeFilePath);
     let compiled = template;
 
     for (const [key, value] of Object.entries(variables)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      compiled = compiled.replace(regex, value !== undefined ? String(value) : '');
+      compiled = compiled.replace(
+        regex,
+        value !== undefined ? String(value) : '',
+      );
     }
 
     return compiled;

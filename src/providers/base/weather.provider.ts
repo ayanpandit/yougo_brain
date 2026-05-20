@@ -6,5 +6,8 @@ export interface WeatherDetails {
 }
 
 export abstract class BaseWeatherProvider {
-  abstract getWeather(latitude: number, longitude: number): Promise<WeatherDetails>;
+  abstract getWeather(
+    latitude: number,
+    longitude: number,
+  ): Promise<WeatherDetails>;
 }

@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Param, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { GenerateDto } from './generate.dto';
 import { PrismaService } from '../database/prisma.service';
 import { QueuesService } from '../queues/queues.service';
@@ -15,28 +23,26 @@ export class ApiController {
 
   @Post()
   async generateItinerary(@Body() dto: GenerateDto) {
-    this.logger.log(`Received asynchronous generation request for: "${dto.destination}"`);
+    const destinationLabel =
+      dto.trip_details.destination?.trim() || 'AI to Decide';
+    this.logger.log(
+      `Received travel generation request: Origin: "${dto.trip_details.origin}", Destination: "${destinationLabel}"`,
+    );
 
-    // 1. Create a persistent generation tracking entry
+    // 1. Create a persistent generation tracking entry with complete DTO payload
     const generation = await this.prisma.generation.create({
       data: {
         status: GenerationStatus.PENDING,
-        promptParams: {
-          destination: dto.destination,
-          durationDays: dto.durationDays,
-          preferences: dto.preferences || '',
-        },
+        promptParams: dto as any, // Save complete dynamic JSON payload
       },
     });
 
-    this.logger.log(`Created PENDING generation record with ID: ${generation.id}`);
+    this.logger.log(
+      `Created PENDING generation record with ID: ${generation.id}`,
+    );
 
-    // 2. Dispatch the job to the BullMQ queue
-    await this.queues.addGenerationJob(generation.id, {
-      destination: dto.destination,
-      durationDays: dto.durationDays,
-      preferences: dto.preferences,
-    });
+    // 2. Dispatch the complete nested payload to the BullMQ queue
+    await this.queues.addGenerationJob(generation.id, dto);
 
     // 3. Return the generation ID instantly to prevent blocking connection
     return {
@@ -66,25 +72,32 @@ export class ApiController {
       throw new NotFoundException(`Generation job with ID "${id}" not found`);
     }
 
+    // Extract the final repaired validation payload if completed
+    const finalOutput =
+      generation.status === GenerationStatus.COMPLETED
+        ? generation.outputs.find((o) => o.stepName === 'validation')?.payload
+        : null;
+
+    const item = {
+      generationId: generation.id,
+      status: generation.status,
+      error: generation.error,
+      createdAt: generation.createdAt,
+      updatedAt: generation.updatedAt,
+      stepsCompleted: generation.outputs.map((o) => ({
+        stepName: o.stepName,
+        validationPassed: o.validationPassed,
+        error: o.error,
+        createdAt: o.createdAt,
+      })),
+      payload: generation.promptParams, // Complete POST input payload parameters
+      response: finalOutput, // Complete generated itinerary output response
+      ...(finalOutput as any), // Flat itinerary fields for maximum frontend ease of use
+    };
+
     return {
       status: 'success',
-      data: {
-        generationId: generation.id,
-        status: generation.status,
-        error: generation.error,
-        createdAt: generation.createdAt,
-        updatedAt: generation.updatedAt,
-        stepsCompleted: generation.outputs.map((o) => ({
-          stepName: o.stepName,
-          validationPassed: o.validationPassed,
-          error: o.error,
-          createdAt: o.createdAt,
-        })),
-        // Expose final output payload if completed
-        output: generation.status === GenerationStatus.COMPLETED
-          ? generation.outputs.find((o) => o.stepName === 'validation')?.payload
-          : null,
-      },
+      data: [item],
     };
   }
 }

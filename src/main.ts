@@ -6,7 +6,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   // Disable default body parser if needed, but NestJS default is perfect for JSON APIs
   const app = await NestFactory.create(AppModule);
 
@@ -27,7 +27,9 @@ async function bootstrap() {
 
   logger.log(`Starting YouGO Brain AI Orchestration Server on port ${port}...`);
   await app.listen(port);
-  logger.log(`🚀 YouGO Brain AI engine fully operational and listening at: http://localhost:${port}`);
+  logger.log(
+    `🚀 YouGO Brain AI engine fully operational and listening at: http://localhost:${port}`,
+  );
 }
 
 bootstrap().catch((err) => {

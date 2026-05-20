@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
@@ -66,7 +71,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
       { generationId, payload },
       {
         jobId: generationId, // Use the generation ID as the unique job ID
-      }
+      },
     );
   }
 
