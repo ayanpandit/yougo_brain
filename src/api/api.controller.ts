@@ -11,6 +11,7 @@ import { GenerateDto } from './generate.dto';
 import { PrismaService } from '../database/prisma.service';
 import { QueuesService } from '../queues/queues.service';
 import { GenerationStatus } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 @Controller('api/v1/generate')
 export class ApiController {
@@ -29,27 +30,31 @@ export class ApiController {
       `Received travel generation request: Origin: "${dto.trip_details.origin}", Destination: "${destinationLabel}"`,
     );
 
-    // 1. Create a persistent generation tracking entry with complete DTO payload
-    const generation = await this.prisma.generation.create({
+    const generationId = randomUUID();
+
+    // 1. Create a persistent unified trips entry with complete DTO payload
+    const trip = await this.prisma.trip.create({
       data: {
+        generationId,
         status: GenerationStatus.PENDING,
-        promptParams: dto as any, // Save complete dynamic JSON payload
+        payload: dto as any, // Save complete dynamic JSON payload
+        type: 'AI_model',
       },
     });
 
     this.logger.log(
-      `Created PENDING generation record with ID: ${generation.id}`,
+      `Created PENDING trip record with Generation ID: ${trip.generationId} and PK: ${trip.id}`,
     );
 
     // 2. Dispatch the complete nested payload to the BullMQ queue
-    await this.queues.addGenerationJob(generation.id, dto);
+    await this.queues.addGenerationJob(trip.generationId, dto);
 
     // 3. Return the generation ID instantly to prevent blocking connection
     return {
       status: 'success',
       message: 'Travel generation job successfully queued',
       data: {
-        generationId: generation.id,
+        generationId: trip.generationId,
         status: GenerationStatus.PENDING,
       },
     };
@@ -59,40 +64,35 @@ export class ApiController {
   async getGenerationStatus(@Param('id') id: string) {
     this.logger.log(`Retrieving status for generation job: ${id}`);
 
-    const generation = await this.prisma.generation.findUnique({
-      where: { id },
-      include: {
-        outputs: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+    const trip = await this.prisma.trip.findUnique({
+      where: { generationId: id },
     });
 
-    if (!generation) {
+    if (!trip) {
       throw new NotFoundException(`Generation job with ID "${id}" not found`);
     }
 
-    // Extract the final repaired validation payload if completed
-    const finalOutput =
-      generation.status === GenerationStatus.COMPLETED
-        ? generation.outputs.find((o) => o.stepName === 'validation')?.payload
-        : null;
+    // Extract stepsCompleted telemetry logs from metadata
+    const stepsCompleted = Array.isArray(trip.metadata)
+      ? trip.metadata
+          .filter((o: any) => o && typeof o === 'object' && 'stepName' in o)
+          .map((o: any) => ({
+            stepName: o.stepName,
+            validationPassed: o.validationPassed,
+            error: o.error,
+            createdAt: o.createdAt,
+          }))
+      : [];
 
     const item = {
-      generationId: generation.id,
-      status: generation.status,
-      error: generation.error,
-      createdAt: generation.createdAt,
-      updatedAt: generation.updatedAt,
-      stepsCompleted: generation.outputs.map((o) => ({
-        stepName: o.stepName,
-        validationPassed: o.validationPassed,
-        error: o.error,
-        createdAt: o.createdAt,
-      })),
-      payload: generation.promptParams, // Complete POST input payload parameters
-      response: finalOutput, // Complete generated itinerary output response
-      ...(finalOutput as any), // Flat itinerary fields for maximum frontend ease of use
+      generationId: trip.generationId,
+      status: trip.status,
+      error: trip.error,
+      createdAt: trip.createdAt,
+      updatedAt: trip.updatedAt,
+      stepsCompleted,
+      payload: trip.payload, // Complete POST input payload parameters
+      response: trip.response, // Complete generated itinerary output response
     };
 
     return {

@@ -63,8 +63,8 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
     );
 
     // Update state to PROCESSING
-    await this.prisma.generation.update({
-      where: { id: generationId },
+    await this.prisma.trip.update({
+      where: { generationId },
       data: { status: GenerationStatus.PROCESSING },
     });
 
@@ -75,15 +75,29 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
         payload,
       );
 
-      // Update state to COMPLETED
-      await this.prisma.generation.update({
-        where: { id: generationId },
-        data: {
-          status: GenerationStatus.COMPLETED,
-          metadata: {
+      // Update state to COMPLETED while preserving intermediate metadata logs
+      const trip = await this.prisma.trip.findUnique({
+        where: { generationId },
+      });
+      const currentMetadata =
+        trip && Array.isArray(trip.metadata) ? trip.metadata : [];
+
+      const updatedMetadata = [
+        ...currentMetadata,
+        {
+          performance: {
             durationMs: Date.now() - job.timestamp,
             attempts: job.attemptsMade,
           },
+          completedAt: new Date(),
+        },
+      ];
+
+      await this.prisma.trip.update({
+        where: { generationId },
+        data: {
+          status: GenerationStatus.COMPLETED,
+          metadata: updatedMetadata as any,
         },
       });
 
@@ -98,8 +112,8 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
       );
 
       // Update state to FAILED
-      await this.prisma.generation.update({
-        where: { id: generationId },
+      await this.prisma.trip.update({
+        where: { generationId },
         data: {
           status: GenerationStatus.FAILED,
           error: error.message || 'Unknown generation error',
