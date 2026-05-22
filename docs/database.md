@@ -1,82 +1,40 @@
-# Database Persistence and Schema Isolation
+# Centralized Database Architecture
 
-This document outlines the design decisions for PostgreSQL schema isolation, Prisma 7 configuration, and dynamic JSONB persistence structures.
+This document outlines the database design and connection strategy for the **YouGO Brain** AI backend.
 
-## 1. Schema Isolation (Multi-Tenant Microservice Strategy)
+## 1. Stateless Client Architecture
 
-Because **YouGO Brain** shares the exact same production-linked Neon PostgreSQL instance with the primary monolithic backend `yougo-server`, running a naive `db push` or migrations on the default `public` schema would trigger drop-table conflicts (Prisma would attempt to drop the `User` table, which is not defined in `yougo_brain`'s schema).
+To maintain industry-grade microservice hygiene, `yougo_brain` does **not** manage its own database or migration files. It acts as a stateless client that reads and writes directly to the primary database owned by the main backend (`yougo-server`).
 
-To solve this elegantly without provisioning additional databases, we implemented **PostgreSQL Schema Isolation**:
-
-- All tables inside `yougo_brain` are created under a dedicated `yougo_brain` database schema instead of the shared `public` schema.
-- This is achieved by appending `&schema=yougo_brain` to the `DATABASE_URL` connection strings across all env files (`.env`, `.env.development`, `.env.production`).
-
-```text
-DATABASE_URL="postgresql://neondb_owner:...@ep-...neon.tech/neondb?sslmode=require&schema=yougo_brain"
-```
-
-When Prisma connects, it automatically maps namespace schemas, creating isolated tables that never conflict with other services!
+- **Single Source of Truth**: The `yougo-server` backend officially owns the `schema.prisma` file containing the AI tables (e.g., `trips`).
+- **Connection**: `yougo_brain` connects directly to the centralized Neon PostgreSQL instance via the exact same `DATABASE_URL` as the main server.
+- **Migrations**: You must **never** run `npx prisma db push` or `npx prisma migrate dev` inside this repository. Migrations are strictly handled by the `yougo-server` repository.
+- **Type Safety**: We use a synchronized replica of the `Trip` model in `yougo_brain/prisma/schema.prisma` purely for generating TypeScript typings via `npx prisma generate`.
 
 ---
 
-## 2. Prisma 7 Compliance
+## 2. Dynamic JSONB Storage Schema
 
-We configure the schema using the state-of-the-art **Prisma 7 standard**:
-- Connection URLs are completely removed from `prisma/schema.prisma`.
-- Instead, Prisma 7 resolves database settings from `prisma.config.ts` during runtime compilation and migration.
-
-```typescript
-// prisma.config.ts
-import "dotenv/config";
-import { defineConfig } from "prisma/config";
-
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
-  datasource: {
-    url: process.env["DATABASE_URL"],
-  },
-});
-```
-
----
-
-## 3. Dynamic JSONB Storage Schema
-
-To handle unstructured AI itinerary details and step metrics cleanly without complex SQL joins, we leverage **native PostgreSQL JSONB fields**:
+To handle unstructured AI itinerary details cleanly without complex SQL joins, we leverage a unified **native PostgreSQL JSONB** flat-table schema:
 
 ```prisma
-model Generation {
-  id           String             @id @default(uuid())
-  status       GenerationStatus   @default(PENDING)
-  promptParams Json               // Input prompts, locations, dates, preferences
-  metadata     Json?              // Additional telemetry / provider data / cost
-  error        String?            // Final error message if failed
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  outputs      GenerationOutput[]
+model Trip {
+  id           String           @id @default(uuid())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  status       GenerationStatus @default(PENDING)
+  error        String?          @db.Text
+  generationId String           @unique
+  payload      Json             // Input parameters (POST body DTO)
+  response     Json?            // Output itinerary (repaired completed JSON)
+  type         String           @default("AI_model")
+  metadata     Json?            // Optional intermediate/telemetry steps list!
 
-  @@map("generations")
-}
-
-model GenerationOutput {
-  id               String      @id @default(uuid())
-  generationId     String
-  stepName         String      // e.g. "enrichment", "llm-generation", "validation"
-  payload          Json        // JSONB field for dynamic structured AI data
-  validationPassed Boolean     @default(true)
-  error            String?     // Validation or process error if occurred
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  generation       Generation  @relation(fields: [generationId], references: [id], onDelete: Cascade)
-
-  @@index([generationId])
-  @@map("generation_outputs")
+  @@map("trips")
 }
 ```
 
 ### JSONB Advantages:
-- **Fast retrieval**: Allows index structures on nested JSON keys (e.g. indexing the geolocation details inside `enrichment` outputs).
-- **Flexibility**: We can enrich travel plans at step 3 with new structures without modifying the schema or executing database migrations.
+- **Fast retrieval**: Allows indexing on nested JSON keys.
+- **Flexibility**: We can enrich and restructure travel plans dynamically without modifying the schema or executing database migrations.
+- **Telemetry**: Background worker process metrics and step-by-step progress tracking are dynamically appended to the `metadata` column.

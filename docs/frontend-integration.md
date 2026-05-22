@@ -128,16 +128,19 @@ The server will respond with the progress:
 ```json
 {
   "status": "success",
-  "data": {
-    "generationId": "57b3ea6b-4e12-4ebf-8182-83b65bf87e91",
-    "status": "PROCESSING",
-    "error": null,
-    "stepsCompleted": [
-      { "stepName": "enrichment", "validationPassed": true },
-      { "stepName": "llm-generation", "validationPassed": true }
-    ],
-    "output": null
-  }
+  "data": [
+    {
+      "generationId": "57b3ea6b-4e12-4ebf-8182-83b65bf87e91",
+      "status": "PROCESSING",
+      "error": null,
+      "stepsCompleted": [
+        { "stepName": "enrichment", "validationPassed": true },
+        { "stepName": "llm-generation", "validationPassed": true }
+      ],
+      "payload": { /* Your original request parameters */ },
+      "response": null
+    }
+  ]
 }
 ```
 
@@ -150,11 +153,13 @@ Here is the exact structure of the finalized, frontend-safe response you will re
 ```json
 {
   "status": "success",
-  "data": {
-    "generationId": "57b3ea6b-4e12-4ebf-8182-83b65bf87e91",
-    "status": "COMPLETED",
-    "error": null,
-    "output": {
+  "data": [
+    {
+      "generationId": "57b3ea6b-4e12-4ebf-8182-83b65bf87e91",
+      "status": "COMPLETED",
+      "error": null,
+      "payload": { /* Your original request parameters */ },
+      "response": {
       "summary": {
         "destination": "Manali, Himachal Pradesh, India",
         "tripType": "4-Day Round Trip from Ghaziabad",
@@ -295,7 +300,7 @@ Here is the exact structure of the finalized, frontend-safe response you will re
         ]
       }
     }
-  }
+  ]
 }
 ```
 
