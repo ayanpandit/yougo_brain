@@ -32,8 +32,10 @@ sequenceDiagram
 
 ## 1. Requesting a Travel Plan (POST)
 
-When your user clicks **"Generate My Trip"**, send a `POST` request to:
-`POST http://localhost:3000/api/v1/generate`
+When your user clicks **"Generate My Trip"**, send an **authenticated** `POST` request to the main server:
+`POST http://localhost:8000/api/v1/generate`
+
+> **Note**: This endpoint is protected. If you use our `apiFetch` helper, the token is attached automatically!
 
 ### 📤 The Payload (What to Send)
 
@@ -118,8 +120,8 @@ Here is the exact format to copy:
 
 ## 2. Checking the Status (GET Polling)
 
-Start querying the server every **2 to 3 seconds** using the `generationId` you received:
-`GET http://localhost:3000/api/v1/generate/57b3ea6b-4e12-4ebf-8182-83b65bf87e91`
+Start querying the server every **2 to 3 seconds** using the `generationId` you received (must be authenticated):
+`GET http://localhost:8000/api/v1/generate/57b3ea6b-4e12-4ebf-8182-83b65bf87e91`
 
 ### 🔄 While it is Generating (Status: PENDING or PROCESSING)
 
@@ -334,10 +336,11 @@ We solved this at the database level! Our backend has an **Auto-Repair Self-Heal
 ## 🛠️ Testing with mock/local server
 To check if the API is working locally:
 1. Fire up a terminal.
-2. Send this exact request using `curl`:
+2. Send this exact request using `curl` (replace YOUR_JWT_TOKEN with a valid user token):
 ```bash
-curl -X POST http://localhost:3000/api/v1/generate \
+curl -X POST http://localhost:8000/api/v1/generate \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "trip_details": {
       "origin": "Ghaziabad",
@@ -371,7 +374,8 @@ curl -X POST http://localhost:3000/api/v1/generate \
 ```
 3. Take the returned ID and curl the GET:
 ```bash
-curl http://localhost:3000/api/v1/generate/YOUR_GENERATION_ID
+curl -X GET http://localhost:8000/api/v1/generate/YOUR_GENERATION_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 You are all set! Have fun building this stunning AI Travel App! 🚗💨⛰️

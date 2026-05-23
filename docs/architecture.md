@@ -17,12 +17,11 @@ YouGO Brain is built on strict **SOLID design principles**, utilizing a decouple
 
 ```mermaid
 graph TD
-    A[Client POST /api/v1/generate] --> B[ApiController]
-    B -->|1. Create persistent tracking Generation ID| C[(PostgreSQL generations)]
-    B -->|2. Push async job| D[BullMQ Queue]
-    B -->|3. Return ID instantly| E[Client Response 202 Accepted]
+    A[Main Server POST /enqueue] --> B[ApiController]
+    B -->|1. Push async job| D[BullMQ Queue]
+    B -->|2. Return 202 Accepted| E[Main Server]
     
-    D -->|4. Pickup| F[GenerationWorker]
+    D -->|3. Pickup| F[GenerationWorker]
     F -->|5. Run Orchestrator| G[OrchestrationService]
     
     G -->|Stage 1: Geocoding + Meteorology| H[EnrichmentStage]
@@ -32,9 +31,9 @@ graph TD
     K -->|Call API| L[OpenAI or Gemini Providers]
     G -->|Stage 4: Custom JSON check| M[ValidationStage]
     
-    G -->|6. Atomic writes| N[PersistenceStage]
+    G -->|5. Atomic writes| N[PersistenceStage]
     N -->|Dynamic JSONB saves| O[(PostgreSQL outputs)]
-    G -->|7. Final Status update| P[Mark COMPLETED / FAILED]
+    G -->|6. Final Status update| P[Mark COMPLETED / FAILED]
 ```
 
 ---

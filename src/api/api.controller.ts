@@ -22,41 +22,28 @@ export class ApiController {
     private readonly queues: QueuesService,
   ) {}
 
-  @Post()
-  async generateItinerary(@Body() dto: GenerateDto) {
+  @Post('enqueue')
+  async enqueueGenerationJob(
+    @Body() body: { generationId: string; dto: GenerateDto },
+  ) {
+    const { generationId, dto } = body;
     const destinationLabel =
       dto.trip_details.destination?.trim() || 'AI to Decide';
+    
     this.logger.log(
-      `Received travel generation request: Origin: "${dto.trip_details.origin}", Destination: "${destinationLabel}"`,
+      `Received AI generation enqueue request for ID: ${generationId}. Origin: "${dto.trip_details.origin}", Destination: "${destinationLabel}"`,
     );
 
-    const generationId = randomUUID();
-
-    // 1. Create a persistent unified trips entry with complete DTO payload
-    const trip = await this.prisma.trip.create({
-      data: {
-        generationId,
-        status: GenerationStatus.PENDING,
-        payload: dto as any, // Save complete dynamic JSON payload
-        type: 'AI_model',
-      },
-    });
+    // Dispatch the complete payload directly to the BullMQ queue
+    await this.queues.addGenerationJob(generationId, dto);
 
     this.logger.log(
-      `Created PENDING trip record with Generation ID: ${trip.generationId} and PK: ${trip.id}`,
+      `Dispatched background generation job to queue for ID: ${generationId}`,
     );
 
-    // 2. Dispatch the complete nested payload to the BullMQ queue
-    await this.queues.addGenerationJob(trip.generationId, dto);
-
-    // 3. Return the generation ID instantly to prevent blocking connection
     return {
       status: 'success',
       message: 'Travel generation job successfully queued',
-      data: {
-        generationId: trip.generationId,
-        status: GenerationStatus.PENDING,
-      },
     };
   }
 

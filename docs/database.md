@@ -29,6 +29,7 @@ model Trip {
   response     Json?            // Output itinerary (repaired completed JSON)
   type         String           @default("AI_model")
   metadata     Json?            // Optional intermediate/telemetry steps list!
+  userId       String
 
   @@map("trips")
 }
