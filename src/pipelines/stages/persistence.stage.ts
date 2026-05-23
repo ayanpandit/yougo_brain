@@ -52,6 +52,21 @@ export class PersistenceStage {
       // 4. If this is the final validation stage and it passed, save the itinerary directly inside the response column!
       if (input.stepName === 'validation' && input.validationPassed) {
         updateData.response = input.payload;
+
+        // Extract top-level summary columns for highly efficient social-feed queries
+        if (input.payload?.summary) {
+          updateData.coverImage = input.payload.summary.imageUrl || null;
+          updateData.tripType = input.payload.summary.tripType || null;
+          updateData.totalDays = input.payload.summary.totalDays || null;
+          updateData.destination = input.payload.summary.destination || null;
+          updateData.baseCurrency = input.payload.summary.baseCurrency || null;
+          updateData.totalPersons = input.payload.summary.totalPersons || null;
+          updateData.experienceType = input.payload.summary.experienceType || null;
+        }
+
+        if (input.payload?.totalCostSummary) {
+          updateData.perPersonCost = input.payload.totalCostSummary.perPersonINR || null;
+        }
       }
 
       // 5. Commit update

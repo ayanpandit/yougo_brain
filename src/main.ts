@@ -26,7 +26,7 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   logger.log(`Starting YouGO Brain AI Orchestration Server on port ${port}...`);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.log(
     `🚀 YouGO Brain AI engine fully operational and listening at: http://localhost:${port}`,
   );

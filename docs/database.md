@@ -31,6 +31,16 @@ model Trip {
   metadata     Json?            // Optional intermediate/telemetry steps list!
   userId       String
 
+  // Extracted Feed Columns
+  coverImage     String?
+  tripType       String?
+  totalDays      Int?
+  destination    String?
+  baseCurrency   String?
+  totalPersons   Int?
+  experienceType String?
+  perPersonCost  Int?
+
   @@map("trips")
 }
 ```
