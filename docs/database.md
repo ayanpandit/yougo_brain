@@ -6,10 +6,10 @@ This document outlines the database design and connection strategy for the **You
 
 To maintain industry-grade microservice hygiene, `yougo_brain` does **not** manage its own database or migration files. It acts as a stateless client that reads and writes directly to the primary database owned by the main backend (`yougo-server`).
 
-- **Single Source of Truth**: The `yougo-server` backend officially owns the `schema.prisma` file containing the AI tables (e.g., `trips`).
+- **Single Source of Truth**: The `yougo-server` backend officially owns and defines database migrations.
 - **Connection**: `yougo_brain` connects directly to the centralized Neon PostgreSQL instance via the exact same `DATABASE_URL` as the main server.
-- **Migrations**: You must **never** run `npx prisma db push` or `npx prisma migrate dev` inside this repository. Migrations are strictly handled by the `yougo-server` repository.
-- **Type Safety**: We use a synchronized replica of the `Trip` model in `yougo_brain/prisma/schema.prisma` purely for generating TypeScript typings via `npx prisma generate`.
+- **Migrations**: You must **never** run `npx prisma migrate dev` inside this repository. Migrations are strictly handled and executed in the `yougo-server` repository to ensure a single transactional schema lineage.
+- **Fully Unified Schema**: To prevent drift and ensure compile-time relationship integrity, `yougo_brain/prisma/schema.prisma` is a 100% identical copy of `yougo-server/prisma/schema.prisma`, including relations to `User` and `AuditLog`. We use `npx prisma generate` here to produce type-safe typings in the microservice layer.
 
 ---
 
@@ -30,6 +30,7 @@ model Trip {
   type         String           @default("AI_model")
   metadata     Json?            // Optional intermediate/telemetry steps list!
   userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Extracted Feed Columns
   coverImage     String?
