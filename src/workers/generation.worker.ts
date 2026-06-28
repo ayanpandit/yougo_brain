@@ -24,17 +24,26 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    const host = this.configService.get<string>('app.redis.host', 'localhost');
-    const port = this.configService.get<number>('app.redis.port', 6379);
-
-    this.logger.log(
-      `Spinning up GenerationWorker subscribing to Redis at ${host}:${port}...`,
-    );
-    this.redisConnection = new Redis({
-      host,
-      port,
-      maxRetriesPerRequest: null,
-    });
+    const redisUrl = this.configService.get<string>('app.redis.url');
+    if (redisUrl) {
+      this.logger.log(
+        `Spinning up GenerationWorker subscribing to Redis using connection URL...`,
+      );
+      this.redisConnection = new Redis(redisUrl, {
+        maxRetriesPerRequest: null,
+      });
+    } else {
+      const host = this.configService.get<string>('app.redis.host', 'localhost');
+      const port = this.configService.get<number>('app.redis.port', 6379);
+      this.logger.log(
+        `Spinning up GenerationWorker subscribing to Redis at ${host}:${port}...`,
+      );
+      this.redisConnection = new Redis({
+        host,
+        port,
+        maxRetriesPerRequest: null,
+      });
+    }
 
     this.worker = new Worker(
       'generation-queue',

@@ -18,15 +18,22 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    const host = this.configService.get<string>('app.redis.host', 'localhost');
-    const port = this.configService.get<number>('app.redis.port', 6379);
-
-    this.logger.log(`Connecting to Redis at ${host}:${port}...`);
-    this.redisConnection = new Redis({
-      host,
-      port,
-      maxRetriesPerRequest: null, // Critical requirement for BullMQ
-    });
+    const redisUrl = this.configService.get<string>('app.redis.url');
+    if (redisUrl) {
+      this.logger.log(`Connecting to Redis using connection URL...`);
+      this.redisConnection = new Redis(redisUrl, {
+        maxRetriesPerRequest: null, // Critical requirement for BullMQ
+      });
+    } else {
+      const host = this.configService.get<string>('app.redis.host', 'localhost');
+      const port = this.configService.get<number>('app.redis.port', 6379);
+      this.logger.log(`Connecting to Redis at ${host}:${port}...`);
+      this.redisConnection = new Redis({
+        host,
+        port,
+        maxRetriesPerRequest: null, // Critical requirement for BullMQ
+      });
+    }
 
     this.redisConnection.on('connect', () => {
       this.logger.log('Successfully connected to Redis!');

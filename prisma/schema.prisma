@@ -81,6 +81,7 @@ model Trip {
   totalPersons   Int?
   experienceType String?
   perPersonCost  Int?
+  isPublished    Boolean          @default(false)
 
   @@map("trips")
 }

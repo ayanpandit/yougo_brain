@@ -378,4 +378,10 @@ curl -X GET http://localhost:8000/api/v1/generate/YOUR_GENERATION_ID \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+4. Once the trip is generated and completed, it is private by default. To publish it to the explore feed, call the publish endpoint:
+```bash
+curl -X POST http://localhost:8000/api/v1/generate/YOUR_GENERATION_ID/publish \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
 You are all set! Have fun building this stunning AI Travel App! 🚗💨⛰️

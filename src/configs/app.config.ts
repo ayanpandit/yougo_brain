@@ -9,6 +9,7 @@ export interface AppConfig {
   redis: {
     host: string;
     port: number;
+    url?: string;
   };
   logLevel: string;
   observabilityEnabled: boolean;
@@ -21,6 +22,7 @@ export default registerAs('app', (): AppConfig => {
     port: parseInt(process.env.PORT || '8001', 10),
     databaseUrl: process.env.DATABASE_URL || '',
     redis: {
+      url: process.env.REDIS_URL || '',
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
     },

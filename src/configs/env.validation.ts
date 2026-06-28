@@ -16,6 +16,7 @@ export const envSchema = z
       .string()
       .default('6379')
       .transform((v) => parseInt(v, 10)),
+    REDIS_URL: z.string().optional(),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
