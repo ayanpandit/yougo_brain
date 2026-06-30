@@ -43,8 +43,14 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Redis connection error:', err);
     });
 
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    const queueName =
+      nodeEnv === 'production'
+        ? 'brain-generation-queue'
+        : 'dev-brain-generation-queue';
+
     // Initialize BullMQ generation queue
-    this.generationQueue = new Queue('brain-generation-queue', {
+    this.generationQueue = new Queue(queueName, {
       connection: this.redisConnection,
       prefix: 'brain',
       defaultJobOptions: {
@@ -59,7 +65,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
     });
 
     // Monitor queue events for trace observability
-    this.queueEvents = new QueueEvents('brain-generation-queue', {
+    this.queueEvents = new QueueEvents(queueName, {
       connection: this.redisConnection,
       prefix: 'brain',
     });

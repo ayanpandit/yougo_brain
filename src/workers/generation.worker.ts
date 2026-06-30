@@ -45,8 +45,14 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
       });
     }
 
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    const queueName =
+      nodeEnv === 'production'
+        ? 'brain-generation-queue'
+        : 'dev-brain-generation-queue';
+
     this.worker = new Worker(
-      'brain-generation-queue',
+      queueName,
       async (job: Job) => {
         return await this.processJob(job);
       },
