@@ -31,7 +31,6 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
       );
       this.redisConnection = new Redis(redisUrl, {
         maxRetriesPerRequest: null,
-        keyPrefix: 'brain:',
       });
     } else {
       const host = this.configService.get<string>('app.redis.host', 'localhost');
@@ -43,7 +42,6 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
         host,
         port,
         maxRetriesPerRequest: null,
-        keyPrefix: 'brain:',
       });
     }
 
@@ -54,6 +52,7 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
       },
       {
         connection: this.redisConnection,
+        prefix: 'brain',
         concurrency: 5, // Concurrency limit: 5 dynamic AI pipelines in parallel
       },
     );
