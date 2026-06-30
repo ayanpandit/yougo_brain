@@ -31,6 +31,7 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
       );
       this.redisConnection = new Redis(redisUrl, {
         maxRetriesPerRequest: null,
+        keyPrefix: 'brain:',
       });
     } else {
       const host = this.configService.get<string>('app.redis.host', 'localhost');
@@ -42,11 +43,12 @@ export class GenerationWorker implements OnModuleInit, OnModuleDestroy {
         host,
         port,
         maxRetriesPerRequest: null,
+        keyPrefix: 'brain:',
       });
     }
 
     this.worker = new Worker(
-      'generation-queue',
+      'brain-generation-queue',
       async (job: Job) => {
         return await this.processJob(job);
       },

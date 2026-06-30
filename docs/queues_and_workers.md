@@ -16,11 +16,16 @@ To solve this, YouGO Brain utilizes a robust **producer-consumer architecture**:
 
 ## BullMQ Configuration Details
 
-### 1. Concurrency Controls
-The `GenerationWorker` is configured with a concurrency pool size of **5**:
+### 1. Key Prefixing & Logical Isolation
+To use a single shared Redis instance for both YouGO Server and YouGO Brain, we keep them logically isolated to prevent collisions:
+- **YouGO Server**: Uses the `keyPrefix: 'server:'` configuration. All keys set or read by the server are prefixed with `server:`.
+- **YouGO Brain**: Uses the `keyPrefix: 'brain:'` configuration. All keys (including BullMQ's queue keys) set or read by the brain service are prefixed with `brain:`.
+
+### 2. Concurrency Controls
+The `GenerationWorker` is configured with a concurrency pool size of **5** and subscribes to the isolated `brain-generation-queue`:
 ```typescript
 this.worker = new Worker(
-  'generation-queue',
+  'brain-generation-queue',
   async (job: Job) => { return await this.processJob(job); },
   {
     connection: this.redisConnection,
@@ -29,14 +34,14 @@ this.worker = new Worker(
 );
 ```
 
-### 2. Exponential Backoff & Retry Logic
+### 3. Exponential Backoff & Retry Logic
 To protect the system against transient network errors (third-party API timeouts, model rate limits), the queue implements a robust **exponential backoff retry strategy**:
 - **Max Attempts**: 3 attempts
 - **Strategy**: Exponential backoff
 - **Base Delay**: 2000ms (Attempt 1: 2s, Attempt 2: 4s, Attempt 3: 8s)
 
 ```typescript
-this.generationQueue = new Queue('generation-queue', {
+this.generationQueue = new Queue('brain-generation-queue', {
   connection: this.redisConnection,
   defaultJobOptions: {
     attempts: 3,

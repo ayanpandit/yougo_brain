@@ -23,6 +23,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Connecting to Redis using connection URL...`);
       this.redisConnection = new Redis(redisUrl, {
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
+        keyPrefix: 'brain:',
       });
     } else {
       const host = this.configService.get<string>('app.redis.host', 'localhost');
@@ -32,6 +33,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
         host,
         port,
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
+        keyPrefix: 'brain:',
       });
     }
 
@@ -44,7 +46,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
     });
 
     // Initialize BullMQ generation queue
-    this.generationQueue = new Queue('generation-queue', {
+    this.generationQueue = new Queue('brain-generation-queue', {
       connection: this.redisConnection,
       defaultJobOptions: {
         attempts: 3,
@@ -58,7 +60,7 @@ export class QueuesService implements OnModuleInit, OnModuleDestroy {
     });
 
     // Monitor queue events for trace observability
-    this.queueEvents = new QueueEvents('generation-queue', {
+    this.queueEvents = new QueueEvents('brain-generation-queue', {
       connection: this.redisConnection,
     });
 
