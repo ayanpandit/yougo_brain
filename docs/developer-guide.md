@@ -28,15 +28,15 @@ The backend is built as a highly modular, decoupled pipeline architecture in Nes
        │
        ├─► 1. LLM Destination Picker (Runs fast Gemini picker if destination is "")
        │
-       ├─► 2. EnrichmentStage
-       │     ├─► GoogleMapsProvider (Geocodes address into coordinates)
-       │     └─► OpenWeatherProvider (Queries meteorological forecasts via Open-Meteo)
-       │
-       ├─► 3. OpenRouteServiceProvider (Calculates driving routes and times)
-       │
-       ├─► 4. PromptCompilationStage (Formats variables and loads prompt templates)
-       │
-       ├─► 5. LlmGenerationStage (Primary Gemini-1.5-Flash / Fallback Groq Llama-3.3)
+        ├─► 2. EnrichmentStage
+             ├─► GoogleMapsProvider / OpenRouteService Geocoder (Geocodes address into coordinates)
+             └─► OpenWeatherProvider (Queries meteorological forecasts via Open-Meteo)
+        │
+        ├─► 3. OpenRouteServiceProvider (Calculates driving routes and times)
+        │
+        ├─► 4. PromptCompilationStage (Formats variables and loads prompt templates)
+        │
+        ├─► 5. LlmGenerationStage (Primary Gemini-2.5-Flash / Fallback Groq Llama-3.3)
        │
        ├─► 6. ImageSearchService (Queries landscape Unsplash / Pexels image media concurrently)
        │
@@ -84,15 +84,15 @@ The backend is built as a highly modular, decoupled pipeline architecture in Nes
   Subscribes to Redis, updates database tracking states to `PROCESSING`, executes the orchestrator, and catches worker crashes to mark states as `FAILED`.
 
 ### 2. Geocoding, Weather, and Driving Routing
-* **Google Maps Geocoding**: Resolves standard string addresses (e.g. `"Manali"`) into precise GPS latitude and longitude.
+* **Geocoding & Maps**: Resolves standard string addresses (e.g. `"Manali"`) into precise GPS latitude and longitude. Uses the Google Maps API when configured, with an automatic fallback to **OpenRouteService Geocoding** using the ORS API key. This ensures high geocoding accuracy even when Google Keys are not available.
 * **Open-Meteo Weather**: Fetches current real-time meteorological temperature and condition metrics without requiring API keys.
 * **OpenRouteService (ORS) Routing**:
   Utilizes the coordinate pairs of the origin and destination to query `https://api.openrouteservice.org/v2/directions/driving-car`.
   * **Failover Math (Haversine)**: If ORS returns a network error (or places are on different continents like Ghaziabad to Paris), it falls back to a straight-line geometric distance multiplied by a detour/winding factor of `1.3`, assuming average travel speed is `50 km/h`.
-
+ 
 ### 3. Dual-Provider LLM Failover Redundancy
 To ensure the travel planner works 24/7/365, we implement dual-layer model redundancy:
-* **Primary LLM**: **Gemini 1.5 Flash** (using `GEMINI_API_KEY`).
+* **Primary LLM**: **Gemini 2.5 Flash** (via the feature-rich `/v1beta` endpoint, using `GEMINI_API_KEY`).
 * **Fallback LLM**: **Groq Llama 3.3 70B** (using `FALLBACK_GROQ_API_KEY`).
 If the Gemini API throws a 429 rate limit or 500 server exception, the `LlmGenerationStage` automatically traps the error and routes the prompt to Groq, returning a successful plan without the user ever noticing a glitch.
 

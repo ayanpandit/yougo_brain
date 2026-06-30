@@ -10,7 +10,10 @@ export class GeminiProvider extends BaseLlmProvider {
 
   constructor(private readonly configService: ConfigService) {
     super();
-    this.apiKey = this.configService.get<string>('GEMINI_API_KEY', '');
+    this.apiKey =
+      this.configService.get<string>('GEMINI_API_KEY', '') ||
+      process.env.GEMINI_API_KEY ||
+      '';
   }
 
   getName(): string {
@@ -18,7 +21,7 @@ export class GeminiProvider extends BaseLlmProvider {
   }
 
   async generate(request: LlmRequest): Promise<LlmResponse> {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-2.5-flash';
     this.logger.log(`Executing LLM generation via Gemini model: ${model}`);
 
     if (!this.apiKey) {
@@ -28,7 +31,7 @@ export class GeminiProvider extends BaseLlmProvider {
       return this.generateMockResponse(request);
     }
 
-    const apiVersions = ['v1', 'v1beta'];
+    const apiVersions = ['v1beta', 'v1'];
     let lastError: any = null;
 
     for (const apiVersion of apiVersions) {

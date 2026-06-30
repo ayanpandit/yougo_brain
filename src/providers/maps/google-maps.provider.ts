@@ -18,7 +18,46 @@ export class GoogleMapsProvider extends BaseMapsProvider {
 
     if (!this.apiKey) {
       this.logger.warn(
-        'GOOGLE_MAPS_API_KEY is not defined! Falling back to simulated GPS mapping...',
+        'GOOGLE_MAPS_API_KEY is not defined! Attempting to geocode using OpenRouteService...',
+      );
+      const orsKey =
+        this.configService.get<string>('OPEN_ROUTE_SERVICE_KEY', '') ||
+        process.env.OPEN_ROUTE_SERVICE_KEY ||
+        '';
+      if (orsKey) {
+        try {
+          const response = await axios.get(
+            'https://api.openrouteservice.org/geocode/search',
+            {
+              params: {
+                text: query,
+                api_key: orsKey,
+                size: 1,
+              },
+              timeout: 10000,
+            },
+          );
+          const feature = response.data.features?.[0];
+          if (feature) {
+            this.logger.log(
+              `Geocoding resolved via OpenRouteService: "${feature.properties.label}" (${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]})`,
+            );
+            return {
+              formattedAddress: feature.properties.label,
+              latitude: feature.geometry.coordinates[1],
+              longitude: feature.geometry.coordinates[0],
+              placeId: feature.properties.id || 'ors-place-id',
+            };
+          }
+        } catch (err: any) {
+          this.logger.error(
+            `OpenRouteService geocoding failed: ${err.message}`,
+          );
+        }
+      }
+
+      this.logger.warn(
+        'Falling back to simulated GPS mapping...',
       );
       return this.getMockLocation(query);
     }
