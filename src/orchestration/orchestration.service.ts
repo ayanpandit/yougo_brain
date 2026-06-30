@@ -127,22 +127,31 @@ export class OrchestrationService {
     // =========================================================================
     let parsedItinerary: any;
     try {
-      parsedItinerary = JSON.parse(llmResponse.content);
-    } catch (err) {
-      this.logger.warn(
-        'Initial raw JSON parse failed in post-processing. Relying on ValidationStage parser to clean it up...',
-      );
-      // Fallback clean and parse
-      const cleanJson = llmResponse.content
-        .trim()
-        .replace(/^```(?:json)?/i, '')
-        .replace(/```$/i, '')
-        .trim();
-      try {
-        parsedItinerary = JSON.parse(cleanJson);
-      } catch (innerErr) {
-        parsedItinerary = {};
+      let cleaned = llmResponse.content.trim();
+      // Remove markdown code blocks if present
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned
+          .replace(/^```(?:json)?\n?/i, '')
+          .replace(/\n?```$/i, '');
       }
+      cleaned = cleaned.trim();
+
+      // Extract JSON bounding structure
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+
+      // Preemptively repair common minor JSON syntactical errors (e.g. trailing commas)
+      cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+
+      parsedItinerary = JSON.parse(cleaned);
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to clean or parse raw LLM output in post-processing: ${err.message}`,
+      );
+      throw new Error(`JSON Clean & Parse Stage Failure: ${err.message}`);
     }
 
     // Repair structure temporarily so we can map safely
