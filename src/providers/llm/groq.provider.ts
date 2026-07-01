@@ -28,8 +28,17 @@ export class GroqProvider extends BaseLlmProvider {
     );
 
     if (!this.apiKey) {
+      const nodeEnv =
+        this.configService.get<string>('NODE_ENV', 'development') ||
+        process.env.NODE_ENV ||
+        'development';
+      if (nodeEnv === 'production') {
+        throw new Error(
+          'FALLBACK_GROQ_API_KEY is not configured in the production environment variables',
+        );
+      }
       this.logger.warn(
-        'FALLBACK_GROQ_API_KEY is not defined! Falling back to simulated Groq response...',
+        'FALLBACK_GROQ_API_KEY is not defined! Falling back to simulated Travel AI response...',
       );
       return this.generateMockResponse(request);
     }

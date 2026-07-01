@@ -25,6 +25,15 @@ export class GeminiProvider extends BaseLlmProvider {
     this.logger.log(`Executing LLM generation via Gemini model: ${model}`);
 
     if (!this.apiKey) {
+      const nodeEnv =
+        this.configService.get<string>('NODE_ENV', 'development') ||
+        process.env.NODE_ENV ||
+        'development';
+      if (nodeEnv === 'production') {
+        throw new Error(
+          'GEMINI_API_KEY is not configured in the production environment variables',
+        );
+      }
       this.logger.warn(
         'GEMINI_API_KEY is not defined! Falling back to simulated Travel AI response...',
       );
