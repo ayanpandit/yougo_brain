@@ -25,6 +25,7 @@ export class LlmGenerationStage {
           'You are an accurate, highly specialized travel AI orchestration assistant.',
         userPrompt: compiledPrompt,
         temperature: 0.5,
+        maxTokens: 8000,
         responseFormat: useJson ? 'json' : 'text',
       });
     } catch (primaryError: any) {
@@ -38,6 +39,7 @@ export class LlmGenerationStage {
             'You are an accurate, highly specialized travel AI orchestration assistant.',
           userPrompt: compiledPrompt,
           temperature: 0.5,
+          maxTokens: 8000,
           responseFormat: useJson ? 'json' : 'text',
         });
 

@@ -40,6 +40,7 @@ export class PersistenceStage {
           stepName: input.stepName,
           validationPassed: input.validationPassed,
           error: input.error || null,
+          payload: input.payload || null,
           createdAt: new Date(),
         },
       ];
